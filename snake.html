@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Snake Game with Sound</title>
+  <style>
+    body {
+      margin: 0;
+      background: #020617;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+      color: white;
+      font-family: Arial;
+    }
+
+    #info {
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+
+    canvas {
+      background: black;
+      border: 4px solid lime;
+      border-radius: 10px;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      background: lime;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<h2>🐍 Snake Game Sound Edition</h2>
+
+<div id="info">
+  Score: <span id="score">0</span> |
+  Level: <span id="level">1</span> |
+  High: <span id="high">0</span>
+</div>
+
+<canvas id="game" width="400" height="400"></canvas>
+
+<button onclick="toggleMusic()">🎵 Music ON/OFF</button>
+<button onclick="startGame()">Restart</button>
+
+<!-- 🔊 Sounds -->
+<audio id="eatSound" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
+<audio id="overSound" src="https://assets.mixkit.co/active_storage/sfx/295/295-preview.mp3"></audio>
+<audio id="bgMusic" src="https://assets.mixkit.co/music/preview/mixkit-game-level-music-689.mp3" loop></audio>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const eatSound = document.getElementById("eatSound");
+const overSound = document.getElementById("overSound");
+const bgMusic = document.getElementById("bgMusic");
+
+const box = 20;
+
+let snake, direction, food, score, level, speed, game;
+let musicPlaying = false;
+
+const scoreEl = document.getElementById("score");
+const levelEl = document.getElementById("level");
+const highEl = document.getElementById("high");
+
+let highScore = localStorage.getItem("snakeHigh") || 0;
+highEl.textContent = highScore;
+
+function randomFood() {
+  return {
+    x: Math.floor(Math.random() * 20) * box,
+    y: Math.floor(Math.random() * 20) * box
+  };
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowLeft" && direction !== "RIGHT") direction = "LEFT";
+  if (e.key === "ArrowUp" && direction !== "DOWN") direction = "UP";
+  if (e.key === "ArrowRight" && direction !== "LEFT") direction = "RIGHT";
+  if (e.key === "ArrowDown" && direction !== "UP") direction = "DOWN";
+});
+
+function toggleMusic() {
+  if (musicPlaying) {
+    bgMusic.pause();
+  } else {
+    bgMusic.play();
+  }
+  musicPlaying = !musicPlaying;
+}
+
+function startGame() {
+  snake = [{ x: 200, y: 200 }];
+  direction = "RIGHT";
+  food = randomFood();
+  score = 0;
+  level = 1;
+  speed = 150;
+
+  scoreEl.textContent = score;
+  levelEl.textContent = level;
+
+  if (game) clearInterval(game);
+  game = setInterval(draw, speed);
+}
+
+function draw() {
+  ctx.clearRect(0, 0, 400, 400);
+
+  // snake
+  snake.forEach((p, i) => {
+    ctx.fillStyle = i === 0 ? "lime" : "green";
+    ctx.fillRect(p.x, p.y, box, box);
+  });
+
+  // food
+  ctx.fillStyle = "red";
+  ctx.fillRect(food.x, food.y, box, box);
+
+  let headX = snake[0].x;
+  let headY = snake[0].y;
+
+  if (direction === "LEFT") headX -= box;
+  if (direction === "UP") headY -= box;
+  if (direction === "RIGHT") headX += box;
+  if (direction === "DOWN") headY += box;
+
+  // eat food
+  if (headX === food.x && headY === food.y) {
+    eatSound.play();
+
+    score++;
+    scoreEl.textContent = score;
+    food = randomFood();
+
+    if (score % 5 === 0) {
+      level++;
+      levelEl.textContent = level;
+
+      clearInterval(game);
+      speed = Math.max(60, speed - 15);
+      game = setInterval(draw, speed);
+    }
+
+  } else {
+    snake.pop();
+  }
+
+  const newHead = { x: headX, y: headY };
+
+  // collision
+  if (
+    headX < 0 || headY < 0 || headX >= 400 || headY >= 400 ||
+    snake.some(p => p.x === newHead.x && p.y === newHead.y)
+  ) {
+    clearInterval(game);
+    overSound.play();
+
+    if (score > highScore) {
+      highScore = score;
+      localStorage.setItem("snakeHigh", highScore);
+      highEl.textContent = highScore;
+    }
+
+    alert("Game Over! Score: " + score);
+    return;
+  }
+
+  snake.unshift(newHead);
+}
+
+startGame();
+</script>
+
+</body>
+</html>
